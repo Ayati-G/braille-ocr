@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrailleDetect - Optical Braille Recognition</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --primary-light: #dbeafe;
+            --secondary: #64748b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg: #f1f5f9;
+            --card: #ffffff;
+            --text: #0f172a;
+            --text-light: #475569;
+            --text-muted: #94a3b8;
+            --border: #e2e8f0;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            --radius-sm: 8px;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ===== Header ===== */
+        .header {
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+            padding: 0 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .header-content {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 64px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+            letter-spacing: -0.025em;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--primary);
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.125rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-light);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.9375rem;
+            transition: color 0.2s;
+            padding: 0.5rem 0;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        /* ===== Main Container ===== */
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 2.5rem 2rem 4rem;
+        }
+
+        /* ===== Hero Section ===== */
+        .hero {
+            text-align: center;
+            padding: 2.5rem 0 3.5rem;
+        }
+
+        .hero h1 {
+            font-size: 2.75rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            letter-spacing: -0.03em;
+            background: linear-gradient(135deg, var(--primary), #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.125rem;
+            color: var(--text-light);
+            max-width: 520px;
+            margin: 0 auto;
+            line-height: 1.7;
+        }
+
+        /* ===== Upload Section ===== */
+        .upload-section {
+            background: var(--card);
+            border-radius: var(--radius-xl);
+            padding: 3.5rem 2rem;
+            box-shadow: var(--shadow-md);
+            margin-bottom: 2.5rem;
+            border: 2px dashed var(--border);
+            transition: all 0.3s ease;
+        }
+
+        .upload-section.drag-over {
+            border-color: var(--primary);
+            background: var(--primary-light);
+            transform: scale(1.005);
+        }
+
+        .upload-area {
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .upload-icon {
+            width: 72px;
+            height: 72px;
+            background: var(--primary-light);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.75rem;
+            font-size: 1.75rem;
+            color: var(--primary);
+            transition: transform 0.3s ease;
+        }
+
+        .upload-area:hover .upload-icon {
+            transform: translateY(-4px);
+        }
+
+        .upload-area h3 {
+            font-size: 1.375rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+        }
+
+        .upload-area p {
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+            font-size: 0.9375rem;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.875rem 1.75rem;
+            border-radius: var(--radius);
+            font-size: 0.9375rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px -4px rgb(37 99 235 / 0.35);
+        }
+
+        .btn-secondary {
+            background: var(--bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+            transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none;
+        }
+
+        /* ===== Results Section ===== */
+        .results-section {
+            display: none;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-top: 2.5rem;
+        }
+
+        .results-section.active {
+            display: grid;
+        }
+
+        .result-card {
+            background: var(--card);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .result-card h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text);
+        }
+
+        .image-preview {
+            width: 100%;
+            border-radius: var(--radius);
+            overflow: hidden;
+            background: var(--bg);
+            min-height: 320px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .image-preview img {
+            max-width: 100%;
+            max-height: 480px;
+            object-fit: contain;
+            display: block;
+        }
+
+        .image-preview .placeholder {
+            color: var(--text-muted);
+            font-size: 3.5rem;
+        }
+
+        /* Detection Overlay */
+        .detection-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .bbox {
+            position: absolute;
+            border: 2px solid var(--success);
+            background: rgba(16, 185, 129, 0.08);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6875rem;
+            font-weight: 700;
+            color: var(--success);
+            animation: fadeIn 0.35s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.85); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Text Output */
+        .text-output {
+            background: #f8fafc;
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+            font-size: 1rem;
+            line-height: 1.85;
+            min-height: 220px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            position: relative;
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .text-output.empty {
+            color: var(--text-muted);
+            font-style: italic;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: white;
+            border: 1px solid var(--border);
+            padding: 0.5rem 0.875rem;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            transition: all 0.2s ease;
+            color: var(--text-light);
+        }
+
+        .copy-btn:hover {
+            background: var(--bg);
+            border-color: var(--text-muted);
+        }
+
+        .copy-btn.copied {
+            background: var(--success);
+            color: white;
+            border-color: var(--success);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 1.25rem 1rem;
+            background: var(--bg);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            font-size: 0.6875rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-top: 0.375rem;
+            font-weight: 600;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            margin-top: 1.5rem;
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        /* ===== History Section ===== */
+        .history-section {
+            margin-top: 4rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .history-section h2 {
+            margin-bottom: 2rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text);
+        }
+
+        .history-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .history-card {
+            background: var(--card);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+            transition: all 0.25s ease;
+            cursor: pointer;
+        }
+
+        .history-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--primary);
+        }
+
+        .history-card img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            display: block;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .history-card-content {
+            padding: 1.25rem;
+        }
+
+        .history-card-content h4 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.375rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--text);
+        }
+
+        .history-card-content p {
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .history-card-content .history-date {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.75rem;
+            font-weight: 500;
+        }
+
+        /* ===== Loading State ===== */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .spinner {
+            width: 52px;
+            height: 52px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 1.125rem;
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .loading-subtext {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        /* ===== Toast Notification ===== */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--text);
+            color: white;
+            padding: 0.875rem 1.25rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            transform: translateY(120px);
+            opacity: 0;
+            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 1001;
+            font-size: 0.9375rem;
+            font-weight: 500;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast.success {
+            background: var(--success);
+        }
+
+        .toast.error {
+            background: var(--danger);
+        }
+
+        /* ===== Footer ===== */
+        .footer {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border);
+            margin-top: 5rem;
+        }
+
+        .footer p:first-child {
+            font-weight: 500;
+            color: var(--text-light);
+            margin-bottom: 0.5rem;
+        }
+
+        .footer p:last-child {
+            font-size: 0.8125rem;
+        }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 768px) {
+            .header-content {
+                padding: 0;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .hero {
+                padding: 1.5rem 0 2.5rem;
+            }
+
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .hero p {
+                font-size: 1rem;
+            }
+
+            .container {
+                padding: 1.5rem 1.25rem 3rem;
+            }
+
+            .upload-section {
+                padding: 2.5rem 1.25rem;
+            }
+
+            .results-section.active {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .action-buttons .btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .history-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero h1 {
+                font-size: 1.625rem;
+            }
+
+            .upload-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
+            }
+
+            .result-card {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+<base target="_blank">
+</head>
+<body>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <a href="#" class="logo">
+                <div class="logo-icon">⠃</div>
+                BrailleDetect
+            </a>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="#detect">Detect</a></li>
+                    <li><a href="#history">History</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container">
+
+        <!-- Hero -->
+        <section class="hero">
+            <h1>Braille to Text Recognition</h1>
+            <p>Upload an image of braille text and our AI model will detect and translate it into readable text instantly.</p>
+        </section>
+
+        <!-- Upload Area -->
+        <section id="detect" class="upload-section">
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                <div class="upload-icon">📤</div>
+                <h3>Drop your braille image here</h3>
+                <p>Supports JPG, PNG, WEBP, and PDF files</p>
+                <button class="btn btn-primary">
+                    <span>📁</span> Choose File
+                </button>
+                <input type="file" id="fileInput" class="file-input" accept="image/*,.pdf" onchange="handleFileSelect(event)">
+            </div>
+        </section>
+
+        <!-- Results -->
+        <section id="results" class="results-section">
+            <!-- Image Preview -->
+            <div class="result-card">
+                <h3>📷 Original Image</h3>
+                <div class="image-preview" id="imagePreview">
+                    <span class="placeholder">🖼️</span>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="charCount">0</div>
+                        <div class="stat-label">Characters</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="wordCount">0</div>
+                        <div class="stat-label">Words</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="procTime">0s</div>
+                        <div class="stat-label">Process Time</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Text Output -->
+            <div class="result-card">
+                <h3>📝 Detected Text</h3>
+                <div class="text-output empty" id="textOutput">
+                    No text detected yet...
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" onclick="copyText()">
+                        <span>📋</span> Copy Text
+                    </button>
+                    <button class="btn btn-secondary" onclick="downloadText()">
+                        <span>💾</span> Download
+                    </button>
+                    <button class="btn btn-secondary" onclick="speakText()">
+                        <span>🔊</span> Read Aloud
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- History -->
+        <section id="history" class="history-section">
+            <h2>🕐 Recent Detections</h2>
+            <div class="history-grid" id="historyGrid">
+                <!-- Populated by JS -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>BrailleDetect - Making braille accessible through AI</p>
+        <p>Grade 1 Braille • Real-time detection</p>
+    </footer>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Analyzing braille...</div>
+        <div class="loading-subtext">Running detection model on your image</div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">
+        <span id="toastIcon">✓</span>
+        <span id="toastMessage">Operation successful</span>
+    </div>
+
+    <script>
+        // State management
+        let currentImage = null;
+        let detectionResults = null;
+        let history = JSON.parse(localStorage.getItem('brailleHistory') || '[]');
+
+        // DOM Elements
+        const dropZone = document.querySelector('.upload-section');
+        const fileInput = document.getElementById('fileInput');
+        const resultsSection = document.getElementById('results');
+        const imagePreview = document.getElementById('imagePreview');
+        const textOutput = document.getElementById('textOutput');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const toast = document.getElementById('toast');
+
+        // Drag and drop handlers
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                processFile(files[0]);
+            }
+        });
+
+        // File selection handler
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                processFile(file);
+            }
+        }
+
+        // Process uploaded file
+        function processFile(file) {
+            if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+                showToast('Please upload an image or PDF file', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                currentImage = e.target.result;
+                displayImage(currentImage);
+                runDetection(file);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Display image in preview
+        function displayImage(src) {
+            imagePreview.innerHTML = `<img src="${src}" alt="Uploaded braille" id="previewImg">`;
+            resultsSection.classList.add('active');
+        }
+
+        // Simulate detection (replace with actual API call)
+        async function runDetection(file) {
+            loadingOverlay.classList.add('active');
+
+            const startTime = performance.now();
+
+            try {
+                // TODO: Replace with actual API endpoint
+                // const formData = new FormData();
+                // formData.append('image', file);
+                // formData.append('confidence_threshold', '0.7');
+
+                // const response = await fetch('/api/detect', {
+                //     method: 'POST',
+                //     body: formData
+                // });
+                // const data = await response.json();
+
+                // Simulated response for demo
+                const formData = new FormData();
+formData.append("file", file);
+
+const response = await fetch(
+    "http://127.0.0.1:8000/predict",
+    {
+        method: "POST",
+        body: formData
+    }
+);
+
+if (!response.ok) {
+    throw new Error("Prediction failed");
+}
+
+const data = await response.json();
+
+const procTime = ((performance.now() - startTime) / 1000).toFixed(2);
+
+const result = {
+    text: `${data.text} (${(data.confidence * 100).toFixed(1)}%)`,
+    confidence: data.confidence,
+    characters: data.text.length,
+    words: 1,
+    boxes: []
+};
+
+displayResults(result, procTime);
+addToHistory(file.name, result.text, currentImage);
+
+            } catch (error) {
+                showToast('Detection failed: ' + error.message, 'error');
+            } finally {
+                loadingOverlay.classList.remove('active');
+            }
+        }
+
+        // Display detection results
+        function displayResults(data, procTime) {
+            detectionResults = data;
+
+            // Update text output
+            textOutput.textContent = data.text || 'No braille detected';
+            textOutput.classList.remove('empty');
+
+            // Add copy button
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'copy-btn';
+            copyBtn.innerHTML = '<span>📋</span> Copy';
+            copyBtn.onclick = copyText;
+            textOutput.appendChild(copyBtn);
+
+            // Update stats
+            document.getElementById('charCount').textContent = data.characters || 0;
+            document.getElementById('wordCount').textContent = data.words || 0;
+            document.getElementById('procTime').textContent = procTime + 's';
+
+            // Draw bounding boxes (if image is loaded)
+            if (data.boxes && data.boxes.length > 0) {
+                drawBoundingBoxes(data.boxes);
+            }
+
+            showToast('Detection complete!', 'success');
+        }
+
+        // Draw bounding boxes on image
+        function drawBoundingBoxes(boxes) {
+            const img = document.getElementById('previewImg');
+            if (!img) return;
+
+            const overlay = document.createElement('div');
+            overlay.className = 'detection-overlay';
+
+            // Wait for image to load to get dimensions
+            img.onload = () => {
+                const rect = img.getBoundingClientRect();
+                const naturalWidth = img.naturalWidth;
+                const naturalHeight = img.naturalHeight;
+
+                const scaleX = rect.width / naturalWidth;
+                const scaleY = rect.height / naturalHeight;
+
+                boxes.forEach(box => {
+                    const div = document.createElement('div');
+                    div.className = 'bbox';
+                    div.style.left = (box.x * scaleX) + 'px';
+                    div.style.top = (box.y * scaleY) + 'px';
+                    div.style.width = (box.w * scaleX) + 'px';
+                    div.style.height = (box.h * scaleY) + 'px';
+                    div.textContent = box.char;
+                    div.title = `Character: ${box.char}
+Confidence: ${(box.conf * 100).toFixed(1)}%`;
+                    overlay.appendChild(div);
+                });
+
+                imagePreview.style.position = 'relative';
+                imagePreview.appendChild(overlay);
+            };
+
+            // Trigger if already loaded
+            if (img.complete) {
+                img.onload();
+            }
+        }
+
+        // Copy text to clipboard
+        function copyText() {
+            if (!detectionResults || !detectionResults.text) return;
+
+            navigator.clipboard.writeText(detectionResults.text).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                if (btn) {
+                    btn.classList.add('copied');
+                    btn.innerHTML = '<span>✓</span> Copied!';
+                    setTimeout(() => {
+                        btn.classList.remove('copied');
+                        btn.innerHTML = '<span>📋</span> Copy';
+                    }, 2000);
+                }
+                showToast('Text copied to clipboard', 'success');
+            });
+        }
+
+        // Download text as file
+        function downloadText() {
+            if (!detectionResults || !detectionResults.text) return;
+
+            const blob = new Blob([detectionResults.text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'braille-text-' + new Date().toISOString().slice(0,10) + '.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('File downloaded', 'success');
+        }
+
+        // Text-to-speech
+        function speakText() {
+            if (!detectionResults || !detectionResults.text) return;
+
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(detectionResults.text);
+                utterance.rate = 0.9;
+                window.speechSynthesis.speak(utterance);
+                showToast('Reading text aloud...', 'success');
+            } else {
+                showToast('Text-to-speech not supported', 'error');
+            }
+        }
+
+        // History management
+        function addToHistory(filename, text, image) {
+            const item = {
+                id: Date.now(),
+                filename,
+                text: text.substring(0, 100) + (text.length > 100 ? '...' : ''),
+                image,
+                date: new Date().toLocaleString()
+            };
+
+            history.unshift(item);
+            if (history.length > 6) history.pop();
+
+            localStorage.setItem('brailleHistory', JSON.stringify(history));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const grid = document.getElementById('historyGrid');
+
+            if (history.length === 0) {
+                grid.innerHTML = '<p style="color: var(--text-muted); grid-column: 1/-1; text-align: center; padding: 2rem;">No history yet. Upload an image to get started.</p>';
+                return;
+            }
+
+            grid.innerHTML = history.map(item => `
+                <div class="history-card" onclick="loadHistoryItem(${item.id})">
+                    <img src="${item.image}" alt="Braille image">
+                    <div class="history-card-content">
+                        <h4>${item.filename}</h4>
+                        <p>${item.text}</p>
+                        <p class="history-date">${item.date}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function loadHistoryItem(id) {
+            const item = history.find(h => h.id === id);
+            if (item) {
+                currentImage = item.image;
+                displayImage(currentImage);
+                textOutput.textContent = item.text;
+                textOutput.classList.remove('empty');
+                resultsSection.classList.add('active');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        // Toast notification
+        function showToast(message, type = 'success') {
+            const icon = type === 'success' ? '✓' : '✕';
+            document.getElementById('toastIcon').textContent = icon;
+            document.getElementById('toastMessage').textContent = message;
+
+            toast.className = 'toast show ' + type;
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Initialize
+        renderHistory();
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'v') {
+                // Handle paste
+                navigator.clipboard.read().then(items => {
+                    for (let item of items) {
+                        if (item.types.includes('image/png') || item.types.includes('image/jpeg')) {
+                            item.getType(item.types[0]).then(blob => {
+                                const file = new File([blob], 'pasted-image.png', { type: blob.type });
+                                processFile(file);
+                            });
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
