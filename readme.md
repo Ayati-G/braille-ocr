@@ -173,8 +173,8 @@ http://127.0.0.1:8000/docs
 
 ## Contributors
 
-* Vansh Kapil – Machine Learning, Backend Development
-* Ayati Gupta – Dataset Preparation, Frontend Development, Testing, Documentation
+* Vansh Kapil – Backend Development, Frontend Development, Documentation
+* Ayati Gupta – Dataset Preparation, Machine Learning, Testing
 
 ---
 
